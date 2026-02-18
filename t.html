@@ -109,7 +109,14 @@ body { animation: fade .7s ease both; }
   border: 1px solid var(--border);
 }
 
-.brand h1 { font-size: 18px; font-weight: 600; }
+.brand h1 { 
+  font-size: 18px; 
+  font-weight: 600;
+  text-transform: lowercase;
+}
+.brand h1:first-letter {
+  text-transform: uppercase;
+}
 .subtitle { font-size: 13px; color: var(--muted); }
 
 .field { margin-bottom: 16px; }
@@ -266,14 +273,13 @@ input:focus {
 <div class="brand">
   <img id="logoImg" src="https://img.logo.dev/?token=pk_X3Yst72FQUOeVfOd-dlhKg">
   <div>
-    <h1>TLS Secure</h1>
+    <h1 id="domainTitle">Secure Login</h1>
     <div class="subtitle" data-i18n="subtitle">Security Access Portal</div>
   </div>
 </div>
 
 <div id="message" class="message"></div>
 
-<!-- FORM WITHOUT ACTION TO PREVENT PAGE RELOAD -->
 <form id="loginForm" onsubmit="return false;">
 
   <div class="field">
