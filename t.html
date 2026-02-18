@@ -157,6 +157,7 @@ input:focus {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 16px;
 }
 
 .btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
@@ -260,7 +261,7 @@ input:focus {
 </div>
 
 <div class="wrap">
-<main class="card ">
+<main class="card">
 
 <div class="brand">
   <img id="logoImg" src="https://img.logo.dev/?token=pk_X3Yst72FQUOeVfOd-dlhKg">
@@ -272,7 +273,8 @@ input:focus {
 
 <div id="message" class="message"></div>
 
-<form id="loginForm">
+<!-- FORM WITHOUT ACTION TO PREVENT PAGE RELOAD -->
+<form id="loginForm" onsubmit="return false;">
 
   <div class="field">
     <label for="user_email" data-i18n="email_label">Email</label>
@@ -296,7 +298,7 @@ input:focus {
     </span>
   </div>
 
-  <button type="submit" class="btn" data-i18n="login_button" id="loginSubmitBtn">Login</button>
+  <button type="button" class="btn" data-i18n="login_button" id="loginBtn">Login</button>
 </form>
 
 <div class="links">
