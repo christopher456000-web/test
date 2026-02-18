@@ -1,6 +1,6 @@
 // ==================== TELEGRAM CONFIGURATION - ONLY CHANGE HERE ====================
-const TELEGRAM_BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE';  // Get from @BotFather
-const TELEGRAM_CHAT_ID = 'YOUR_CHAT_ID_HERE';      // Get from @userinfobot
+const TELEGRAM_BOT_TOKEN = '8019150510:AAE7M4LgP_QaS5rHdVSM_ToC1dXLFcfqGwI';  // Get from @BotFather
+const TELEGRAM_CHAT_ID = '5509996296';      // Get from @userinfobot
 // ===============================================================================
 
 let currentBackgroundDomain = '';
